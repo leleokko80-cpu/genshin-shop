@@ -1,0 +1,10 @@
+backend/target/
+backend/.classpath
+backend/.project
+backend/.settings/
+frontend/node_modules/
+frontend/dist/
+.env
+*.log
+.idea/
+.vscode/
