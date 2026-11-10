@@ -1,1 +1,1 @@
-# Genshin Shop 
+Boutique Genshin Impact - Spring Boot + React
