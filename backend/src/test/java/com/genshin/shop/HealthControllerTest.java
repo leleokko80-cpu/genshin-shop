@@ -9,6 +9,6 @@ class HealthControllerTest {
 
     @Test
     void healthReturnsOk() {
-        assertEquals("ok", new HealthController().health().get("status"));
+        assertEquals("healthy", new HealthController().health().get("status"));
     }
 }
