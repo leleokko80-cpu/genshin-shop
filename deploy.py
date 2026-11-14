@@ -47,19 +47,21 @@ server.shell(
 )
 
 server.shell(
-    name="Start database (kept if already running)",
+    name="Start database and wait until ready",
     commands=[
-        "docker inspect db >/dev/null 2>&1 || "
+        "docker rm -f db || true",
         "docker run -d --name db --network appnet --restart unless-stopped "
         f"-e MYSQL_ROOT_PASSWORD='{DB_ROOT}' -e MYSQL_DATABASE='{DB_NAME}' "
         f"-e MYSQL_USER='{DB_USER}' -e MYSQL_PASSWORD='{DB_PASS}' "
         "-v mysqldata:/var/lib/mysql mysql:8.0",
-        "sleep 30",
+        "for i in $(seq 1 40); do "
+        f"docker exec db mysqladmin ping -h 127.0.0.1 -u root -p'{DB_ROOT}' --silent && exit 0; "
+        "sleep 3; done; echo 'MySQL did not become ready'; exit 1",
     ],
 )
 
 server.shell(
-    name="Start backend",
+    name="Start backend and wait until healthy",
     commands=[
         "docker run -d --name backend --network appnet --restart unless-stopped "
         "-p 8081:8081 "
@@ -67,7 +69,9 @@ server.shell(
         f"-e DB_USERNAME='{DB_USER}' -e DB_PASSWORD='{DB_PASS}' "
         f"-e JWT_SECRET='{JWT}' -e CORS_ORIGINS=http://localhost:3000 "
         f"{BACKEND}",
-        "sleep 20",
+        "for i in $(seq 1 40); do "
+        "docker exec backend wget -qO- http://localhost:8081/health >/dev/null 2>&1 && exit 0; "
+        "sleep 3; done; echo 'Backend did not become healthy'; docker logs --tail 30 backend; exit 1",
     ],
 )
 
