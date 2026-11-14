@@ -57,8 +57,8 @@ jobs:
         run: |
           $sha = "${{ github.sha }}".Substring(0,7)
 
-          $env:HARBOR_PASSWORD | docker login $env:REGISTRY -u $env:HARBOR_USERNAME --password-stdin
-          if ($LASTEXITCODE -ne 0) { exit 1 }
+        docker login $env:REGISTRY -u $env:HARBOR_USERNAME -p $env:HARBOR_PASSWORD
+        if ($LASTEXITCODE -ne 0) { exit 1 }
 
           foreach ($name in @("backend", "frontend")) {
             $image = "$env:REGISTRY/$env:PROJECT/genshin-shop-$name"
