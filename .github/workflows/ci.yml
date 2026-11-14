@@ -41,14 +41,7 @@ jobs:
       PROJECT: devops
     steps:
       - uses: actions/checkout@v4
-      - name: Debug secrets (lengths only)
-        shell: powershell
-        env:
-          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
-          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
-        run: |
-          Write-Host "user length: $($env:HARBOR_USERNAME.Length)"
-          Write-Host "pass length: $($env:HARBOR_PASSWORD.Length)"
+
       - name: Build, tag with commit SHA and push to Harbor
         shell: powershell
         env:
@@ -57,7 +50,7 @@ jobs:
         run: |
           $sha = "${{ github.sha }}".Substring(0,7)
 
-          $env:HARBOR_PASSWORD | docker login $env:REGISTRY -u $env:HARBOR_USERNAME --password-stdin
+          docker login $env:REGISTRY -u $env:HARBOR_USERNAME -p $env:HARBOR_PASSWORD
           if ($LASTEXITCODE -ne 0) { exit 1 }
 
           foreach ($name in @("backend", "frontend")) {
