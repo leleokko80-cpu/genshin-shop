@@ -32,21 +32,37 @@ jobs:
           npm ci
           npm run build
 
-  build-image:
+   build-image:
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: [self-hosted, windows]
+    env:
+      REGISTRY: localhost:8082
+      PROJECT: devops
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build images tagged with the commit SHA
+      - name: Build, tag with commit SHA and push to Harbor
         shell: powershell
+        env:
+          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
         run: |
           $sha = "${{ github.sha }}".Substring(0,7)
-          docker build -t "genshin-shop-backend:$sha" ./backend
+
+          $env:HARBOR_PASSWORD | docker login $env:REGISTRY -u $env:HARBOR_USERNAME --password-stdin
           if ($LASTEXITCODE -ne 0) { exit 1 }
-          docker build -t "genshin-shop-frontend:$sha" ./frontend
-          if ($LASTEXITCODE -ne 0) { exit 1 }
-          docker tag "genshin-shop-backend:$sha" genshin-shop-backend:latest
-          docker tag "genshin-shop-frontend:$sha" genshin-shop-frontend:latest
-          Write-Host "Images built with tag $sha"
+
+          foreach ($name in @("backend", "frontend")) {
+            $image = "$env:REGISTRY/$env:PROJECT/genshin-shop-$name"
+            docker build -t "${image}:$sha" "./$name"
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+            docker tag "${image}:$sha" "${image}:latest"
+            docker push "${image}:$sha"
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+            docker push "${image}:latest"
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          }
+
+          docker logout $env:REGISTRY
+          Write-Host "Pushed images with tag $sha"
